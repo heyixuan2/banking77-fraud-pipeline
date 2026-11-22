@@ -25,18 +25,18 @@ pdf = PdfPages("eda_report.pdf")
 # ===================== PAGE 1 =====================
 fig = plt.figure(figsize=(8.5, 11))
 gs = GridSpec(4, 2, figure=fig, height_ratios=[0.85, 1, 1, 1], hspace=0.55,
-              wspace=0.25, left=0.09, right=0.96, top=0.96, bottom=0.05)
+              wspace=0.30, left=0.125, right=0.955, top=0.955, bottom=0.075)
 ax = fig.add_subplot(gs[0, :]); ax.axis("off")
 ax.text(0, 1.0, "Catching Fraud in the Chat Box — EDA Progress Report",
         fontsize=14, fontweight="bold", va="top")
 ax.text(0, 0.82, "Yixuan He, Lanbin Fan, Zizheng Wang, Ken Qin   ·   DSAN 6000 Final Project"
                  "   ·   22 November 2026   ·   Page 1 of 2: the data",
         fontsize=8, color=MUTED, va="top")
-body = ("Banking77's released files hold 13,083 labelled messages (~1 MB) — too small for a Spark cluster, and labelled on "
-        "every row, which is the opposite of a live chatbot stream. We replay them into a simulated production log: 90 days "
-        "across three branches, with each branch's own business-hours curve, the sparse review coverage a bank actually has, "
-        "and planted adversarial behaviour. The log is in S3 as Hive-partitioned Parquet. Every number below came from "
-        "scanning that S3 copy with Polars; the data was never pulled onto the instance.")
+body = ("Banking77 ships 13,083 messages in about 1 MB, and every one of them carries a label. A bank's live chatbot "
+        "stream looks nothing like that — it is large, and almost none of it has been reviewed. So we replay those 13,083 "
+        "messages into a 90-day log across three branches, each running on its own business hours, with review coverage set "
+        "to 5% and three adversarial patterns planted in. The log sits in S3 as Hive-partitioned Parquet. Polars read it "
+        "straight from the bucket to produce every number here; nothing was copied onto the instance.")
 ax.text(0, 0.64, "\n".join(textwrap.wrap(body, 118)), fontsize=7.6, va="top", linespacing=1.55)
 ax.text(0, -0.20, f"{d['rows']:,} rows  ·  {d['cols']} columns  ·  {d['part']['n']} partitions  ·  1.99 GB Parquet  ·  "
                   f"{d['days']} days  ·  s3://dsan6000-banking77-team/raw/",
@@ -92,14 +92,14 @@ pdf.savefig(fig); plt.close(fig)
 # ===================== PAGE 2 =====================
 fig = plt.figure(figsize=(8.5, 11))
 gs = GridSpec(4, 2, figure=fig, height_ratios=[0.5, 1, 1, 1], hspace=0.55,
-              wspace=0.25, left=0.09, right=0.96, top=0.96, bottom=0.05)
+              wspace=0.30, left=0.125, right=0.955, top=0.955, bottom=0.075)
 ax = fig.add_subplot(gs[0, :]); ax.axis("off")
 ax.text(0, 1.0, "Page 2 — querying the lake, and what is wrong with the data",
         fontsize=12, fontweight="bold", va="top")
-body2 = ("One logical query — messages and reviewed messages per branch — run three ways against the same S3 Parquet, "
-         "first over all 90 days and then over a three-week slice, to separate engine speed from the benefit of partition "
-         "pruning. The caveats below are limitations of the simulation, not of the tooling, and they shape what the "
-         "modelling stage can honestly claim.")
+body2 = ("We ran one query — messages and reviewed messages per branch — three ways over the same S3 Parquet: once "
+         "across all 90 days, once across a three-week slice. The pair separates how fast an engine is from how much work "
+         "partition pruning saves it. The caveats at the bottom are limits of our simulation, not of the tools, and they "
+         "bound what the modelling stage can claim.")
 ax.text(0, 0.62, "\n".join(textwrap.wrap(body2, 118)), fontsize=7.6, va="top", linespacing=1.55)
 
 a = fig.add_subplot(gs[1, :])
@@ -123,9 +123,10 @@ a.text(0, 0.80, f"all 90 days        {sc_f:,.1f} MB scanned", fontsize=7.5, va="
 a.text(0, 0.68, f"3-week slice        {sc_p:,.1f} MB scanned", fontsize=7.5, va="top", family="monospace")
 a.text(0, 0.56, f"dataset on disk   {1990:,} MB", fontsize=7.5, va="top", family="monospace", color=MUTED)
 a.text(0, 0.36, "\n".join(textwrap.wrap(
-    "Aggregating all 44.5M rows touched 5.9 MB of a 1.99 GB dataset: Parquet lets the engine read the two columns the "
-    "query names and skip the rest. Pruning to three weeks cut that again by 4.2x. Athena's wall-clock barely moved — "
-    "its ~3.9s is fixed serverless start-up, which is why the local engines win at this size and would lose at 100x it.", 56)),
+    "Counting all 44.5M rows cost 5.9 MB of reads against a 1.99 GB file set, because Parquet hands the engine only the "
+    "columns the query names. Narrowing to three weeks cut that by another 4.2x. Athena's clock hardly moved: about 3.9s "
+    "of it is start-up it pays no matter how small the question. That overhead is why Polars and DuckDB win here, and why "
+    "they would lose on a dataset 100x larger.", 56)),
     fontsize=6.5, va="top", color=MUTED, linespacing=1.5)
 
 a = fig.add_subplot(gs[2, 1])
@@ -139,14 +140,14 @@ a = fig.add_subplot(gs[3, :]); a.axis("off")
 a.text(0, 1.0, "10  Caveats the modelling stage has to live with", fontsize=8, fontweight="bold", va="top")
 items = [
     (f"Only {d['unique_text']:,} distinct message texts across {d['rows']:,} rows — each repeats about {d['dup_factor']}x.",
-     "A random train/test split would put near-identical messages on both sides and flatter the model. Split by msg_id "
-     "cohort, or deduplicate before evaluating."),
+     "Split the rows at random and near-identical messages land on both sides, which would make the model look better "
+     "than it is. We will split by message cohort, or deduplicate before evaluating."),
     ("Fraud labels are ours, not Banking77's.",
-     "Precision and recall on the planted rows measure whether the pipeline catches the patterns we designed. They are "
-     "not evidence about real fraud, and the report will say so."),
+     "Precision and recall on the planted rows tell us whether the pipeline catches patterns we designed ourselves. They "
+     "say nothing about real fraud, and the final report will state that plainly."),
     (f"Partitions range {d['part']['min']:,} to {d['part']['max']:,} rows ({d['part_skew']}x).",
-     "Weekday/weekend and branch size drive it. Worth watching next week: skewed partitions make some Spark tasks run "
-     "long while others idle."),
+     "Weekday-weekend rhythm and branch size drive the spread. It matters next week: with partitions this uneven, some "
+     "Spark tasks finish early and sit idle while others run long."),
 ]
 y = 0.80
 for head, tail in items:
@@ -155,8 +156,8 @@ for head, tail in items:
     a.text(0.035, y - 0.11, "\n".join(textwrap.wrap(tail, 112)), fontsize=6.8, va="top",
            color=MUTED, linespacing=1.5)
     y -= 0.29
-nxt = ("Next — Spark cluster usage report, due 29 November: the same log at 1% / 10% / 100% against 1, 2 and 4 "
-       "workers, recording runtime, shuffle size and partition counts.")
+nxt = ("Next, due 29 November: the Spark cluster report. Same log, 1% / 10% / 100% slices against 1, 2 and 4 workers, "
+       "recording runtime, shuffle size and partition counts.")
 a.text(0.01, y - 0.02, "\n".join(textwrap.wrap(nxt, 108)), fontsize=7.3, va="top",
        fontweight="bold", linespacing=1.5)
 pdf.savefig(fig); plt.close(fig)
