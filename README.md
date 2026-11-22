@@ -85,4 +85,4 @@ aws s3 sync log/ s3://<your-bucket>/raw/
 | `scripts/eda2.py` | Hour-of-day, duplication, partition skew, vocabulary |
 | `scripts/athena_setup.sh` | Creates the Glue/Athena external table over the log |
 | `scripts/bench.py` | Times the same query on Polars, DuckDB and Athena |
-| `scripts/make_report2.py` | Composes `report/eda_report.pdf` |
+| `scripts/make_report3.py` | Composes `report/eda_report.pdf` |
