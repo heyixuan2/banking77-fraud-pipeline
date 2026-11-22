@@ -54,9 +54,6 @@ format:
 #v(1.0em)
 ```
 
-**Scope.** Progress report for the week of November 22: the simulated
-production log is built and is in S3. This is what it looks like.
-
 # Overview
 
 Banking77 [@casanueva2020] ships 13,083 customer chat messages in about 1MB,
