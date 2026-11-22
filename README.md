@@ -52,3 +52,17 @@ request), and `drift_vocab` (a vocabulary shift on the
 the window).
 
 Data is never committed to this repository; see `.gitignore`.
+
+## Progress
+
+- **EDA progress report (22 Nov)** — `report/eda_report.pdf`. Generated the
+  simulated log, loaded it to S3, and profiled it with Polars reading straight
+  from the bucket. 44,464,114 rows / 1.99 GB / 270 partitions / 90 days.
+- **Next: Spark cluster usage report (29 Nov)** — the same log at 1% / 10% /
+  100% against 1, 2 and 4 workers.
+
+| Script | What it does |
+|---|---|
+| `scripts/generate_log.py` | Builds the log from Banking77 and writes partitioned Parquet |
+| `scripts/eda.py` | Profiles the log in S3 with Polars; writes `eda_out.json` and the figure extracts |
+| `scripts/make_onepager.py` | Composes `report/eda_report.pdf` |

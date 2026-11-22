@@ -125,8 +125,9 @@ def main():
         d = start + timedelta(days=di)
         # drift ramps in over the final third of the window
         ds = max(0.0, (di - a.days * 2 / 3) / (a.days / 3)) * 0.8
-        # weekends are quieter
-        wk = 0.6 if d.weekday() >= 5 else 1.0
+        # weekends are quieter, and no two days see quite the same traffic
+        wk = (0.6 if d.weekday() >= 5 else 1.0) * float(rng.normal(1.0, 0.09))
+        wk = max(0.35, wk)
         for branch, (offset, share) in BRANCHES.items():
             n = int(per_day * share * wk)
             if n <= 0:

@@ -1,0 +1,187 @@
+{
+ "rows": 44464114,
+ "cols": 7,
+ "labelled": 2221185,
+ "labelled_pct": 5.0,
+ "by_branch": [
+  {
+   "branch": "addis_ababa",
+   "n": 13339232,
+   "labelled": 665217
+  },
+  {
+   "branch": "washington_dc",
+   "n": 22232079,
+   "labelled": 1110694
+  },
+  {
+   "branch": "yuzhno_sakhalinsk",
+   "n": 8892803,
+   "labelled": 445274
+  }
+ ],
+ "days": 90,
+ "len": {
+  "min": 13.0,
+  "p50": 54.0,
+  "p90": 112.0,
+  "p99": 225.0,
+  "max": 1203.0,
+  "mean": 65.72769337088332
+ },
+ "over_999": 8758,
+ "injected": [
+  {
+   "injected_type": null,
+   "n": 44371909
+  },
+  {
+   "injected_type": "drift_vocab",
+   "n": 74710
+  },
+  {
+   "injected_type": "token_flooding",
+   "n": 8748
+  },
+  {
+   "injected_type": "identity_fail_transfer",
+   "n": 8747
+  }
+ ],
+ "n_intents_seen": 77,
+ "intent_top5": [
+  {
+   "label": 15,
+   "n": 38560,
+   "intent": "card_payment_fee_charged"
+  },
+  {
+   "label": 75,
+   "n": 37555,
+   "intent": "wrong_amount_of_cash_received"
+  },
+  {
+   "label": 28,
+   "n": 37517,
+   "intent": "direct_debit_payment_not_recognised"
+  },
+  {
+   "label": 6,
+   "n": 36971,
+   "intent": "balance_not_updated_after_cheque_or_cash_deposit"
+  },
+  {
+   "label": 19,
+   "n": 36712,
+   "intent": "cash_withdrawal_charge"
+  }
+ ],
+ "intent_bottom5": [
+  {
+   "label": 41,
+   "n": 20917,
+   "intent": "lost_or_stolen_card"
+  },
+  {
+   "label": 18,
+   "n": 17313,
+   "intent": "card_swallowed"
+  },
+  {
+   "label": 10,
+   "n": 16743,
+   "intent": "card_acceptance"
+  },
+  {
+   "label": 72,
+   "n": 13677,
+   "intent": "virtual_card_not_working"
+  },
+  {
+   "label": 23,
+   "n": 12704,
+   "intent": "contactless_not_working"
+  }
+ ],
+ "imbalance_ratio": 3.04,
+ "drift_by_week": [
+  {
+   "week": "2026-08-24",
+   "n": 2227,
+   "drifted": 0,
+   "pct": 0.0
+  },
+  {
+   "week": "2026-08-31",
+   "n": 2138,
+   "drifted": 0,
+   "pct": 0.0
+  },
+  {
+   "week": "2026-09-07",
+   "n": 2254,
+   "drifted": 0,
+   "pct": 0.0
+  },
+  {
+   "week": "2026-09-14",
+   "n": 2118,
+   "drifted": 0,
+   "pct": 0.0
+  },
+  {
+   "week": "2026-09-21",
+   "n": 2295,
+   "drifted": 0,
+   "pct": 0.0
+  },
+  {
+   "week": "2026-09-28",
+   "n": 2201,
+   "drifted": 0,
+   "pct": 0.0
+  },
+  {
+   "week": "2026-10-05",
+   "n": 2251,
+   "drifted": 0,
+   "pct": 0.0
+  },
+  {
+   "week": "2026-10-12",
+   "n": 2125,
+   "drifted": 0,
+   "pct": 0.0
+  },
+  {
+   "week": "2026-10-19",
+   "n": 2197,
+   "drifted": 14,
+   "pct": 0.64
+  },
+  {
+   "week": "2026-10-26",
+   "n": 2292,
+   "drifted": 333,
+   "pct": 14.53
+  },
+  {
+   "week": "2026-11-02",
+   "n": 2186,
+   "drifted": 746,
+   "pct": 34.13
+  },
+  {
+   "week": "2026-11-09",
+   "n": 2261,
+   "drifted": 1198,
+   "pct": 52.99
+  },
+  {
+   "week": "2026-11-16",
+   "n": 2109,
+   "drifted": 1475,
+   "pct": 69.94
+  }
+ ]
+}
