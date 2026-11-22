@@ -1,0 +1,38 @@
+[
+ {
+  "engine": "Polars",
+  "query": "full scan",
+  "seconds": 7.14,
+  "scanned_mb": null
+ },
+ {
+  "engine": "DuckDB",
+  "query": "full scan",
+  "seconds": 2.34,
+  "scanned_mb": null
+ },
+ {
+  "engine": "Athena",
+  "query": "full scan",
+  "seconds": 3.86,
+  "scanned_mb": 5.909665
+ },
+ {
+  "engine": "Polars",
+  "query": "3-week slice",
+  "seconds": 1.13,
+  "scanned_mb": null
+ },
+ {
+  "engine": "DuckDB",
+  "query": "3-week slice",
+  "seconds": 0.68,
+  "scanned_mb": null
+ },
+ {
+  "engine": "Athena",
+  "query": "3-week slice",
+  "seconds": 3.91,
+  "scanned_mb": 1.39463
+ }
+]

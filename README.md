@@ -55,14 +55,34 @@ Data is never committed to this repository; see `.gitignore`.
 
 ## Progress
 
-- **EDA progress report (22 Nov)** — `report/eda_report.pdf`. Generated the
-  simulated log, loaded it to S3, and profiled it with Polars reading straight
-  from the bucket. 44,464,114 rows / 1.99 GB / 270 partitions / 90 days.
-- **Next: Spark cluster usage report (29 Nov)** — the same log at 1% / 10% /
-  100% against 1, 2 and 4 workers.
+**EDA progress report (22 Nov)** — `report/eda_report.pdf`, two pages.
+Page 1 profiles the log; page 2 compares Polars, DuckDB and Athena over the
+same S3 Parquet and sets out the caveats the modelling stage has to live with.
+
+44,464,114 rows · 1.99 GB · 270 partitions · 90 days, at
+`s3://dsan6000-banking77-team/raw/`.
+
+**Next: Spark cluster usage report (29 Nov)** — the same log at 1% / 10% /
+100% against 1, 2 and 4 workers.
+
+### Reproducing the data
+
+The generator is deterministic, so every team member can produce a
+byte-identical copy in their own AWS account rather than sharing a bucket
+across accounts:
+
+```bash
+python scripts/generate_log.py --rows 50000000 --days 90 --start 2026-08-24 --out log
+aws s3 sync log/ s3://<your-bucket>/raw/
+```
+
+### Scripts
 
 | Script | What it does |
 |---|---|
-| `scripts/generate_log.py` | Builds the log from Banking77 and writes partitioned Parquet |
-| `scripts/eda.py` | Profiles the log in S3 with Polars; writes `eda_out.json` and the figure extracts |
-| `scripts/make_onepager.py` | Composes `report/eda_report.pdf` |
+| `scripts/generate_log.py` | Builds the log from Banking77, writes partitioned Parquet |
+| `scripts/eda.py` | First-pass profile from S3 with Polars |
+| `scripts/eda2.py` | Hour-of-day, duplication, partition skew, vocabulary |
+| `scripts/athena_setup.sh` | Creates the Glue/Athena external table over the log |
+| `scripts/bench.py` | Times the same query on Polars, DuckDB and Athena |
+| `scripts/make_report2.py` | Composes `report/eda_report.pdf` |
