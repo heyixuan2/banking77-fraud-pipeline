@@ -1,128 +1,194 @@
 ---
-title: "Catching Fraud in the Chat Box"
-subtitle: "EDA progress report"
-author:
-  - Yixuan He
-  - Lanbin Fan
-  - Zizheng Wang
-  - Ken Qin
-date: 2026-11-22
+number-sections: true
+fig-cap-location: bottom
+tbl-cap-location: top
+bibliography: references.bib
+csl: apa.csl
 format:
-  html:
-    toc: true
-    toc-depth: 2
-    theme: cosmo
-    fig-align: center
-    embed-resources: true
   typst:
     papersize: us-letter
-    margin: { x: 2.2cm, y: 2.2cm }
-    fontsize: 10pt
+    margin: { x: 1in, y: 1in }
+    mainfont: "Liberation Serif"
+    fontsize: 12pt
+  html:
+    title: "Catching Fraud in the Chat Box: Exploratory Analysis of a Simulated Banking77 Production Log"
+    author: "Yixuan He, Lanbin Fan, Zizheng Wang, and Ken Qin"
+    date: "November 22, 2026"
+    theme: cosmo
+    toc: true
+    embed-resources: true
+    mainfont: "Times New Roman, Liberation Serif, Georgia, serif"
 ---
 
-## What we built, and why
+```{=typst}
+#set page(
+  footer: none,
+  header: context {
+    set text(size: 10pt)
+    grid(columns: (1fr, auto),
+      text(style: "italic")[DSAN 6000 EDA Progress Report],
+      [#counter(page).display()])
+  })
+#set heading(numbering: (..n) => {
+  let p = n.pos()
+  if p.len() == 1 { numbering("1.", ..p) } else { numbering("1.1", ..p) }
+})
+#show heading.where(level: 1): set text(size: 13pt)
+#show heading.where(level: 2): set text(size: 12pt)
+#set par(justify: false, leading: 0.72em)
 
-Banking77 ships 13,083 customer messages in about 1 MB, and every one of them
-carries an intent label. A bank's live chatbot stream looks nothing like that.
-It is large, it arrives continuously, and almost none of it has been reviewed —
-the `label` field is `NA` until someone gets to it.
+#align(center)[
+  #text(size: 16pt, weight: "bold")[
+    Catching Fraud in the Chat Box: Exploratory Analysis of a
+    Simulated Banking77 Production Log
+  ]
+  #v(0.9em)
+  #text(size: 12pt)[Yixuan He, Lanbin Fan, Zizheng Wang, and Ken Qin]
+  #v(0.5em)
+  #text(size: 12pt)[DSAN 6000: Big Data and Cloud Computing, Georgetown University]
+  #linebreak()
+  #text(size: 12pt)[EDA Progress Report]
+  #linebreak()
+  #text(size: 12pt)[November 22, 2026]
+]
+#v(1.0em)
+```
 
-So the first stage of the project was to build a log that behaves the way the
-real thing would. We replay the 13,083 messages into 90 days of traffic across
-three branches, each running on its own local business hours, with review
-coverage set to 5% and three adversarial patterns planted in. The result lives
-in S3 as Hive-partitioned Parquet, and it is the input to everything that
-follows.
+**Scope.** Progress report for the week of November 22: the simulated
+production log is built and in S3, and this is what it looks like.
+
+# Overview
+
+Banking77 [@casanueva2020] ships 13,083 customer-chat messages in about 1 MB,
+and every one of them carries an intent label. A bank's live chatbot stream
+looks nothing like that. It is large, it arrives continuously, and almost none
+of it has been reviewed — the `label` field is `NA` until a human gets to it.
+
+Our proposal committed to replaying Banking77 into a log that behaves the way
+the real stream would. That log now exists. This report checks that it has the
+properties we claimed, and reports what we found when we queried it three
+different ways.
+
+# The simulated log
+
+## Structure
+
+Each row is one message sent to the chatbot. The three OLTP fields named in the
+course vignette are kept as-is, with two additions: a stable identifier, so a
+review arriving later can be matched back to the original row, and a column
+recording which rows we planted.
+
+| Column | Type | Notes |
+|---|---|---|
+| `msg_id` | string | Stable across re-generation |
+| `label` | int32 | Intent 0–76; **null** when not yet reviewed |
+| `text` | string | Message body |
+| `received` | timestamp | UTC |
+| `injected_type` | string | Evaluation ground truth; null for ordinary rows |
+
+: Schema of the simulated log. `date` and `branch` are Hive partition keys and
+live in the path rather than the file. {#tbl-schema}
+
+## Scale and access
 
 | | |
 |---|---|
 | Rows | 44,464,114 |
-| Columns | 5 data + 2 partition keys |
 | Partitions | 270 (90 dates × 3 branches) |
 | On disk | 1.99 GB Parquet |
 | Window | 2026-08-24 to 2026-11-21 |
+| Reviewed | 2,221,185 (5.0%) |
 | Location | `s3://dsan6000-banking77-team/raw/` |
 
-Every number in this report came from Polars reading that S3 copy directly.
-Nothing was downloaded to the instance.
+: Scale of the log as built. {#tbl-scale}
 
-The generator is deterministic, so each of us can reproduce a byte-identical
-copy in our own AWS account rather than sharing a bucket across accounts:
+Every figure in this report was produced by Polars reading that S3 copy
+directly. Nothing was downloaded onto the EC2 instance.
+
+Because each of us has a separate AWS account, we did not share a bucket.
+The generator is deterministic instead, so the same two commands produce a
+byte-identical copy in any account:
 
 ```bash
 python scripts/generate_log.py --rows 50000000 --days 90 --start 2026-08-24 --out log
 aws s3 sync log/ s3://<your-bucket>/raw/
 ```
 
-## The shape of the traffic
+# What the data looks like
+
+## Traffic
 
 ![Daily message volume by branch.](figs/daily.png){#fig-daily}
 
-Volume holds steady over the window with a clear weekend dip. Washington DC
+Volume holds steady across the window with a clear weekend dip. Washington DC
 carries half the traffic, Addis Ababa a third, Yuzhno-Sakhalinsk a fifth.
 
-![Messages by hour, in each branch's own time zone.](figs/clock.png){#fig-clock}
+![Messages by hour of day, in each branch's own time zone.](figs/clock.png){#fig-clock}
 
 @fig-clock is the more useful view. All three branches peak near 13:00 local
-time, but their time zones are eleven and sixteen hours apart, so in UTC those
-peaks land at 18:00, 10:00 and 02:00. One branch is at its busiest while
-another is asleep. That matters for the ingest design: there is no hour when
-all three are quiet, so a nightly batch window does not exist, and the
-micro-batch snapshots have to be scheduled per branch.
+time, but they sit eleven and sixteen hours apart, so in UTC those peaks fall
+at 18:00, 10:00 and 02:00. One branch is at its busiest while another is
+asleep.
 
-## How little of it is labelled
+This has a direct consequence for the ingest design in our proposal. We had
+planned to take micro-batch snapshots "at the low points of the branches'
+combined traffic." @fig-clock shows there is no such hour: the combined curve
+never goes quiet. Snapshots will have to be scheduled per branch, against each
+branch's own local trough.
+
+## Review coverage
 
 ![Reviewed against unreviewed messages, by branch.](figs/coverage.png){#fig-coverage}
 
-2.22M of 44.46M rows carry an intent label — 5.0%. The share is the same in
-every branch, so no branch is better covered than another. The other 95% is
-what the fraud-ranking model actually has to work on, and it is the reason the
-project is a ranking problem before it is a classification problem.
+2,221,185 of 44,464,114 rows carry an intent label, and the 5% share is the
+same in every branch. The remaining 95% is what the fraud-ranking model has to
+work on. This is why the problem is a ranking problem before it is a
+classification problem: for most rows there is nothing to compare a prediction
+against.
 
-## Message length, and the first planted pattern
+## Message length
 
-![Message length. Note the log scale on the vertical axis.](figs/length.png){#fig-length}
+![Message length. Note the logarithmic vertical axis.](figs/length.png){#fig-length}
 
-Half of all messages are under 54 characters, and the ordinary tail dies out
+Half of all messages are under 54 characters and the ordinary tail dies out
 near 450. The 8,758 rows past 999 characters are the planted token-flooding
-attack, and there is nothing at all in between. A length threshold alone would
-catch every one of them in this log — which is a warning about the simulation
-rather than a finding about fraud. Real flooding would not separate this
-cleanly, and the modelling stage should not be tuned against a gap this
-convenient.
+attack, and there is nothing in between.
 
-## Class imbalance across the 77 intents
+That gap is a weakness of the simulation, not a result. A length threshold
+alone separates the flooding perfectly here, which real flooding would not do.
+We will keep the length feature but will not tune against this margin.
+
+## Intent imbalance
 
 ![Reviewed messages per intent.](figs/intents.png){#fig-intents}
 
 The most frequent intent, `card_payment_fee_charged`, has 38,560 reviewed
-messages; the least frequent, `contactless_not_working`, has 12,704. A ratio of
-3.04 is mild compared with most real label distributions, but it is enough that
-overall accuracy will look better than per-class recall, so macro-F1 is the
-metric we will report.
+messages; the least frequent, `contactless_not_working`, has 12,704. The 3.04
+ratio is mild next to most production label distributions, but it is enough
+that overall accuracy will read higher than per-class recall. We will report
+macro-F1 alongside accuracy.
 
 ## Vocabulary drift
 
 ![Share of reviewed intent-54 messages using the new wording, by week.](figs/drift.png){#fig-drift}
 
-This is the Zimbabwe-gold scenario from the course vignette, planted
-deliberately. Until late October, no reviewed message on
-`supported_cards_and_currencies` uses the new wording. Five weeks later, 69% of
-them do.
+This is the Zimbabwe-gold case from the course vignette, planted on
+`supported_cards_and_currencies` (intent 54). Until late October no reviewed
+message on that intent uses the new wording; five weeks later 69% of them do.
 
-The practical point is that the degradation is invisible in aggregate. Overall
-accuracy would barely move, because this is one intent out of 77. A monitor
-that watches only a global metric would miss it; per-intent confidence tracking
-would not.
+The useful observation is that the degradation is invisible in aggregate. One
+intent out of 77 shifting would barely move overall accuracy, so a monitor
+watching a single global metric would not see it. Per-intent confidence
+tracking would.
 
-## Querying the lake
+# Querying the lake
 
-We ran one query — messages and reviewed messages per branch — three ways over
-the same S3 Parquet: once across all 90 days, once across a three-week slice.
-The pair separates how fast an engine is from how much work partition pruning
-saves it.
+We ran one query — messages and reviewed messages per branch — three ways
+against the same S3 Parquet: once across all 90 days, once across a three-week
+slice. The pair separates how fast an engine is from how much work partition
+pruning saves it.
 
-![Wall-clock for the same query on three engines.](figs/engines.png){#fig-engines}
+![Wall-clock time for the same query on three engines.](figs/engines.png){#fig-engines}
 
 | Engine | All 90 days | Three-week slice | Speed-up |
 |---|---|---|---|
@@ -130,9 +196,11 @@ saves it.
 | DuckDB | 2.34 s | 0.68 s | 3.4× |
 | Athena | 3.86 s | 3.91 s | — |
 
-Pruning helps the two local engines a great deal and does nothing for Athena,
-because what Athena spends here is start-up, not scanning. Its bytes tell the
-real story:
+: Wall-clock time, same query, same data. {#tbl-engines}
+
+Pruning helps both local engines substantially and does nothing for Athena,
+because what Athena spends here is start-up rather than scanning. Its bytes
+tell the real story.
 
 | Athena query | Data scanned |
 |---|---|
@@ -140,30 +208,31 @@ real story:
 | Three-week slice | 1.4 MB |
 | Files on disk | 1,990 MB |
 
-Counting all 44.5M rows cost 5.9 MB of reads. Parquet hands the engine only the
-two columns the query names and skips the other five, and the partition keys
-are read from the path rather than the file. Narrowing to three weeks cut that
-by a further 4.2×.
+: Bytes Athena actually read. {#tbl-scanned}
 
-The ~3.9 s Athena pays regardless is fixed serverless start-up. At this size
-that overhead dominates and the local engines win; at a hundred times this
-size, Athena's scanning model would win instead. This is the trade-off we will
-revisit with Spark.
+Counting all 44.5M rows cost 5.9 MB of reads. Parquet hands the engine only
+the two columns the query names and skips the other five, and the partition
+keys are read from the path rather than from any file. Narrowing to three
+weeks cut that by a further 4.2×.
+
+The roughly 3.9 s Athena pays regardless is fixed serverless start-up. At this
+size that overhead dominates and the local engines win; at a hundred times
+this size, Athena's scanning model would win instead.
 
 ![Rows per date/branch partition.](figs/partitions.png){#fig-partitions}
 
 The 270 partitions run from 53,198 to 318,754 rows, a 6.0× spread. The three
-clusters in @fig-partitions are the three branches; within each cluster, the
-lower lobe is weekends.
+clusters in @fig-partitions are the three branches; within each, the lower lobe
+is weekends.
 
-## Caveats the modelling stage has to live with
+# Caveats
 
 **Only 492,380 distinct message texts across 44,464,114 rows — each repeats
-about 90 times.** The perturbation applied during replay produces fewer unique
-strings than the row count suggests. Split the rows at random and
-near-identical messages land in both train and test, which would make the model
-look considerably better than it is. We will split by message cohort, or
-deduplicate before evaluating, and report which.
+about 90 times.** The perturbation applied during replay produces far fewer
+unique strings than the row count suggests. Splitting the rows at random would
+put near-identical messages in both train and test and make the model look
+considerably better than it is. We will split by message cohort, or
+deduplicate before evaluating, and will state which.
 
 **The fraud labels are ours, not Banking77's.** Precision and recall on the
 planted rows measure whether the pipeline catches patterns we designed
@@ -171,5 +240,10 @@ ourselves. They are not evidence about real fraud. The final report will say so
 in the results section rather than in a footnote.
 
 **The partition sizes are uneven by construction.** Weekday-weekend rhythm and
-branch size drive the 6.0× spread, so the imbalance is structural rather than
-accidental, and it will persist in any re-generation of the log.
+branch size drive the 6.0× spread, so the imbalance is structural and will
+persist in any re-generation of the log.
+
+# References
+
+::: {#refs}
+:::
