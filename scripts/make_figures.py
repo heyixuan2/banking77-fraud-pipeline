@@ -14,9 +14,6 @@ get = lambda e, q: next(r["seconds"] for r in bm if r["engine"] == e and r["quer
 INK, MUTED, ACC = "#1a1a1a", "#5a5a5a", "#c05621"
 C = {"washington_dc": "#2b6cb0", "addis_ababa": "#c05621", "yuzhno_sakhalinsk": "#2f855a"}
 plt.rcParams.update({
-    # match the report body, which is set in Liberation Serif (Times metrics)
-    "font.family": "serif", "font.serif": ["Liberation Serif", "DejaVu Serif"],
-    "mathtext.fontset": "dejavuserif",
     "font.size": 9, "axes.edgecolor": "#cccccc", "axes.labelcolor": INK,
     "text.color": INK, "xtick.color": MUTED, "ytick.color": MUTED,
     "figure.dpi": 150, "savefig.bbox": "tight", "savefig.facecolor": "white"})

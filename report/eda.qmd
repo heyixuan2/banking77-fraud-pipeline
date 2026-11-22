@@ -174,8 +174,7 @@ metric would not see it. Per-intent confidence tracking would.
 # Querying the lake
 
 We ran one query (messages and reviewed messages per branch) three ways on the
-same S3 Parquet: once over all 90 days, once over a three week slice. The pair
-shows how fast an engine is vs how much work partition pruning saves it.
+same S3 Parquet: once over all 90 days, once over a three week slice.
 
 ![Wall-clock time for the same query on three engines.](figs/engines.png){#fig-engines}
 
@@ -220,7 +219,7 @@ repeats about 90 times).** The perturbation applied during replay produces far
 fewer unique strings than the row count would suggest. If we split the rows at
 random we'd end up with near-identical messages in both train and test and the
 model would look a lot better than it is. We will split by message cohort or
-deduplicate prior to evaluation and will state that.
+deduplicate prior to evaluation.
 
 **The fraud labels are ours not Banking77's.** Precision and recall on the
 planted rows is evidence of whether the pipeline catches the patterns we've
