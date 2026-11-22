@@ -2386,8 +2386,7 @@ Table 2: Scale of the log as built.
 </div>
 </figure>
 </div>
-<p>Every figure here was produced by Polars reading that S3 copy directly; nothing was downloaded onto the EC2 instance.</p>
-<p>As we each have our own AWS account we didn’t share a bucket. The generator is deterministic so the same two commands will produce a byte-identical copy in any account:</p>
+<p>The generator is deterministic, so the same two commands produce a byte-identical copy in any account:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> scripts/generate_log.py <span class="at">--rows</span> 50000000 <span class="at">--days</span> 90 <span class="at">--start</span> 2026-08-24 <span class="at">--out</span> log</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 sync log/ s3://<span class="op">&lt;</span>your-bucket<span class="op">&gt;</span>/raw/</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
@@ -2580,7 +2579,7 @@ Figure 8: Rows per date/branch partition.
 <section id="caveats" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Caveats</h1>
 <p><strong>Only 492,380 distinct message texts across 44,464,114 rows (each message repeats about 90 times).</strong> The perturbation applied during replay produces far fewer unique strings than the row count would suggest. If we split the rows at random we’d end up with near-identical messages in both train and test and the model would look a lot better than it is. We will split by message cohort or deduplicate prior to evaluation and will state that.</p>
-<p><strong>The fraud labels are ours not Banking77’s.</strong> Precision and recall on the planted rows is evidence of whether the pipeline catches the patterns we’ve planted. It is not evidence about real fraud. The final report will say that in the results section rather than in a footnote.</p>
+<p><strong>The fraud labels are ours not Banking77’s.</strong> Precision and recall on the planted rows is evidence of whether the pipeline catches the patterns we’ve planted. It is not evidence about real fraud.</p>
 <p><strong>The partition sizes are uneven by construction.</strong> Weekday-weekend rhythm and branch size drive the 6.0x spread so the imbalance is structural and will persist in any re-generation of the log.</p>
 </section>
 <section id="references" class="level1" data-number="6">
