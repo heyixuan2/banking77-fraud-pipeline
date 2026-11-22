@@ -2289,7 +2289,7 @@ vertical-align: -.125em;
 <section id="overview" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Overview</h1>
 <p>Banking77 <span class="citation" data-cites="casanueva2020">(<a href="#ref-casanueva2020" role="doc-biblioref">Casanueva et al., 2020</a>)</span> ships 13,083 customer chat messages in about 1MB, and every single one of them has an intent label. A bank’s live chatbot stream is nothing like that. It’s huge, it comes in a continuous stream and almost none of it has been reviewed (the <code>label</code> field is <code>NA</code> until a human gets to it).</p>
-<p>Our proposal was to replay Banking77 into a log that would behave like the real stream. That log is now in existence. This report checks that it has the properties we claimed and reports on what we found when we queried it in three different ways.</p>
+<p>Our proposal was to replay Banking77 into a log that would behave like the real stream. That log now exists.</p>
 </section>
 <section id="the-simulated-log" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> The simulated log</h1>
@@ -2386,7 +2386,7 @@ Table 2: Scale of the log as built.
 </div>
 </figure>
 </div>
-<p>All the figures in this report were produced by Polars reading that S3 copy directly. Nothing was ever downloaded onto the EC2 instance.</p>
+<p>Every figure here was produced by Polars reading that S3 copy directly; nothing was downloaded onto the EC2 instance.</p>
 <p>As we each have our own AWS account we didn’t share a bucket. The generator is deterministic so the same two commands will produce a byte-identical copy in any account:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> scripts/generate_log.py <span class="at">--rows</span> 50000000 <span class="at">--days</span> 90 <span class="at">--start</span> 2026-08-24 <span class="at">--out</span> log</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 sync log/ s3://<span class="op">&lt;</span>your-bucket<span class="op">&gt;</span>/raw/</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -2417,7 +2417,7 @@ Figure 2: Messages by hour of day in each branch’s own time zone.
 </figcaption>
 </figure>
 </div>
-<p><a href="#fig-clock" class="quarto-xref">Figure 2</a> is the more useful view. All three branches peak around 13:00 local time but they’re 11 and 16 hours apart so in UTC those peaks fall at 18:00, 10:00 and 02:00. One branch is at its busiest while another is asleep.</p>
+<p>All three branches peak around 13:00 local time but they’re 11 and 16 hours apart, so in UTC those peaks fall at 18:00, 10:00 and 02:00. One branch is at its busiest while another is asleep.</p>
 <p>That has a direct bearing on the ingest design in our proposal. We had planned to take micro-batch snapshots “at the low points of the branches’ combined traffic”. <a href="#fig-clock" class="quarto-xref">Figure 2</a> shows there is no such point: the combined curve never goes quiet. Snapshots will have to be scheduled per branch, against each branch’s own local trough.</p>
 </section>
 <section id="review-coverage" class="level2" data-number="3.2">
@@ -2476,7 +2476,7 @@ Figure 6: Share of reviewed intent 54 messages using the new wording by week.
 </figure>
 </div>
 <p>This is the Zimbabwe gold case from the course vignette, planted on <code>supported_cards_and_currencies</code> (intent 54). Until late October no reviewed message on that intent uses the new wording; five weeks later 69% of them do.</p>
-<p>The useful observation is that the degradation is invisible in the aggregate. A single intent out of 77 shifting would barely move overall accuracy so a monitor watching a single global metric would not see it. Per-intent confidence tracking would.</p>
+<p>The degradation is invisible in the aggregate. A single intent out of 77 shifting would barely move overall accuracy, so a monitor watching one global metric would not see it. Per-intent confidence tracking would.</p>
 </section>
 </section>
 <section id="querying-the-lake" class="level1" data-number="4">
@@ -2531,7 +2531,7 @@ Table 3: Wall-clock time, same query, same data.
 </div>
 </figure>
 </div>
-<p>Pruning helps both the local engines significantly and does nothing for Athena as what Athena is spending here is start-up time rather than scanning. Its bytes tell the real story.</p>
+<p>Pruning helps both the local engines significantly and does nothing for Athena, as what Athena is spending here is start-up time rather than scanning.</p>
 <div id="tbl-scanned" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-scanned-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
