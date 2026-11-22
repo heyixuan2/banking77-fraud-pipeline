@@ -149,17 +149,13 @@ items = [
      "Weekday-weekend rhythm and branch size drive the spread. It matters next week: with partitions this uneven, some "
      "Spark tasks finish early and sit idle while others run long."),
 ]
-y = 0.80
+y = 0.86
 for head, tail in items:
     a.text(0.01, y, "•", fontsize=8, va="top")
     a.text(0.035, y, head, fontsize=7.3, va="top", fontweight="bold")
     a.text(0.035, y - 0.11, "\n".join(textwrap.wrap(tail, 112)), fontsize=6.8, va="top",
            color=MUTED, linespacing=1.5)
-    y -= 0.29
-nxt = ("Next, due 29 November: the Spark cluster report. Same log, 1% / 10% / 100% slices against 1, 2 and 4 workers, "
-       "recording runtime, shuffle size and partition counts.")
-a.text(0.01, y - 0.02, "\n".join(textwrap.wrap(nxt, 108)), fontsize=7.3, va="top",
-       fontweight="bold", linespacing=1.5)
+    y -= 0.31
 pdf.savefig(fig); plt.close(fig)
 pdf.close()
 print("wrote eda_report.pdf (2 pages)")
