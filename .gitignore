@@ -1,0 +1,17 @@
+# data: never commit the simulated log
+*.parquet
+log/
+data/
+testlog/
+
+# python
+.venv/
+__pycache__/
+*.py[oc]
+
+# quarto / rendering
+/.quarto/
+_site/
+_book/
+
+.DS_Store
