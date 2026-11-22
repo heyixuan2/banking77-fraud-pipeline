@@ -26,8 +26,9 @@ BRANCHES = {
 TONE = ["", "", "", "hi ", "hello ", "please help: ", "urgent! ", "hey, "]
 TAIL = ["", "", "", " thanks", " pls", " ???", " asap", " :("]
 
-# intent id 32 == supported_cards_and_currencies (drift target)
-DRIFT_INTENT = 32
+# intent id 54 == supported_cards_and_currencies, the drift target named in the
+# course vignette (Zimbabwe renamed its currency to "Zimbabwe gold" in 2024)
+DRIFT_INTENT = 54
 DRIFT_TOKENS = ["zimbabwe gold", "zig", "zimbabwe gold token", "zig currency"]
 
 
