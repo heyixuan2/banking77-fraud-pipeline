@@ -55,15 +55,15 @@ Data is never committed to this repository; see `.gitignore`.
 
 ## Progress
 
-**EDA progress report (22 Nov)** — `report/eda_report.pdf`, two pages.
-Page 1 profiles the log; page 2 compares Polars, DuckDB and Athena over the
-same S3 Parquet and sets out the caveats the modelling stage has to live with.
+**EDA progress report (22 Nov)** — written in Quarto, rendered to both formats:
+
+- `report/eda.qmd` — source
+- `report/eda.pdf` — via Typst
+- `report/eda.html` — self-contained
 
 44,464,114 rows · 1.99 GB · 270 partitions · 90 days, at
-`s3://dsan6000-banking77-team/raw/`.
-
-**Next: Spark cluster usage report (29 Nov)** — the same log at 1% / 10% /
-100% against 1, 2 and 4 workers.
+`s3://dsan6000-banking77-team/raw/`. Quarto is also what the final report has
+to be, so this doubles as the scaffolding for 13 December.
 
 ### Reproducing the data
 
@@ -85,4 +85,6 @@ aws s3 sync log/ s3://<your-bucket>/raw/
 | `scripts/eda2.py` | Hour-of-day, duplication, partition skew, vocabulary |
 | `scripts/athena_setup.sh` | Creates the Glue/Athena external table over the log |
 | `scripts/bench.py` | Times the same query on Polars, DuckDB and Athena |
-| `scripts/make_report3.py` | Composes `report/eda_report.pdf` |
+| `scripts/make_figures.py` | Writes one PNG per figure into `report/figs/` |
+
+Render the report with `quarto render report/eda.qmd`.
