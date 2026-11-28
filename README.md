@@ -19,6 +19,7 @@ intent training.
 | Path | Contents |
 |---|---|
 | `scripts/generate_log.py` | Builds the simulated production log from Banking77 |
+| `spark/` | PySpark intent classifier, scale-test log generator, run metrics |
 | `notebooks/` | EDA and querying (Polars, DuckDB, Athena) |
 | `report/` | Quarto manuscript for the final report |
 | `figures/` | Figures exported by the notebooks |
@@ -88,3 +89,32 @@ aws s3 sync log/ s3://<your-bucket>/raw/
 | `scripts/make_figures.py` | Writes one PNG per figure into `report/figs/` |
 
 Render the report with `quarto render report/eda.qmd`.
+
+**Spark progress report (29 Nov)** — `report/spark.qmd`, rendered to
+`report/spark.pdf` (2 pages) and `report/spark.html`.
+
+The intent classifier is PySpark end to end, so the larger synthetic log can be
+dropped in by changing `--log`:
+
+```bash
+# local test against a log on disk
+spark-submit --master 'local[2]' --driver-memory 2g spark/intent_classifier.py \
+  --log log/ --intents scripts/intents.csv --out out/ --metrics metrics.json
+
+# the cluster, against S3
+spark-submit --master spark://<master-private-ip>:7077 \
+  --packages org.apache.hadoop:hadoop-aws:3.3.4 spark/intent_classifier.py \
+  --log s3a://dsan6000-banking77-team/raw/ --intents scripts/intents.csv \
+  --out s3a://dsan6000-banking77-team/model_v1/ --metrics metrics.json
+```
+
+| Script | What it does |
+|---|---|
+| `spark/intent_classifier.py` | Routes labeled/unlabeled rows, trains TF-IDF + multinomial logistic regression, scores unlabeled rows to `predictions/` (partitioned by date/branch), writes a weekly per-intent confidence table |
+| `spark/make_test_log.py` | Spark generator for scale tests in the same schema; replays Banking77's **train split only**, so the official test split stays unseen |
+| `spark/eval_official_test.py` | Scores saved models on the official 3,080-message test split |
+| `spark/metrics/` | Metrics JSON from the runs in the report |
+
+Settings that matter (see the report, §3): keep `--num-features` at 32768 or
+below, and keep `--train-partitions` small (default 2 per core); the script
+stores the trained coefficients as a dense matrix before scoring.

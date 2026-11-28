@@ -1,0 +1,14 @@
+{
+  "mode": "csv",
+  "master": "local[2]",
+  "default_parallelism": 2,
+  "driver_memory": "2g",
+  "n_train": 10003,
+  "t_load_s": 5.5,
+  "t_fit_s": 148.9,
+  "accuracy": 0.837987012987013,
+  "macro_f1": 0.8383007663099804,
+  "n_eval": 3080,
+  "t_eval_s": 6.0,
+  "t_total_s": 162.9
+}

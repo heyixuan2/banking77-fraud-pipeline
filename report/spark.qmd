@@ -1,0 +1,122 @@
+---
+number-sections: true
+tbl-cap-location: top
+bibliography: references.bib
+csl: apa.csl
+format:
+  typst:
+    papersize: us-letter
+    margin: { x: 0.85in, y: 0.75in }
+    mainfont: "Liberation Serif"
+    fontsize: 10.5pt
+  html:
+    title: "Catching Fraud in the Chat Box: Spark Progress Report"
+    author: "Yixuan He, Lanbin Fan, Zizheng Wang and Ken Qin"
+    date: "November 29, 2026"
+    theme: cosmo
+    embed-resources: true
+    mainfont: "Times New Roman, Liberation Serif, Georgia, serif"
+---
+
+```{=typst}
+#set page(
+  footer: none,
+  header: context {
+    set text(size: 9pt)
+    grid(columns: (1fr, auto),
+      text(style: "italic")[DSAN 6000 Spark Progress Report],
+      [#counter(page).display()])
+  })
+#set heading(numbering: (..n) => numbering("1.", ..n.pos()))
+#show heading.where(level: 1): set text(size: 12pt)
+#show heading: set block(above: 0.9em, below: 0.5em)
+#set par(justify: false, leading: 0.6em, spacing: 0.75em)
+#show table: set text(size: 9pt)
+
+#align(center)[
+  #text(size: 14pt, weight: "bold")[Catching Fraud in the Chat Box: Spark Progress Report]
+  #v(0.3em)
+  Yixuan He, Lanbin Fan, Zizheng Wang and Ken Qin · DSAN 6000, Georgetown University · November 29, 2026
+]
+#v(0.3em)
+```
+
+# Status
+
+Our Banking77 [@casanueva2020] intent classifier is written end to end in
+PySpark (`spark/intent_classifier.py`). It ran unchanged on the 13,083-message
+original, on a 905,828-row log from our own generator, and on 2M- and 10M-row
+test logs, all under a 2 GB driver heap. New synthetic data is dropped in by
+changing one path. Our full log has 44,464,114 rows but only 492,380 distinct
+texts (EDA report), so it is the small-in-substance case: we wrote Spark now
+so that growth needs no rewrite. Every run here used one 2-core machine
+(Spark 3.5.3, `local[2]`); cluster runs are next (§5).
+
+# The Spark job
+
+Read the Hive-partitioned log (`date=`/`branch=` from the path) → route rows
+with a label to training and rows without one to scoring, keeping planted
+attack rows (`token_flooding`, `identity_fail_transfer`) out of training →
+deduplicate by text and split 80/20 on a hash of the text → `RegexTokenizer`,
+`NGram(2)`, `HashingTF` (2^15 buckets each), `IDF` → multinomial
+`LogisticRegression` (L-BFGS, 100 iterations) → score the unlabeled rows,
+writing `predictions/` (intent, confidence) partitioned by date and branch,
+plus a weekly per-intent confidence table for drift monitoring. Only a 77×77
+count table and a few aggregates ever reach the driver.
+
+```bash
+spark-submit --master spark://<master-private-ip>:7077 \
+  --packages org.apache.hadoop:hadoop-aws:3.3.4 spark/intent_classifier.py \
+  --log s3a://dsan6000-banking77-team/raw/ --intents scripts/intents.csv \
+  --out s3a://dsan6000-banking77-team/model_v1/ --metrics metrics.json
+```
+
+# Wrestling with Spark
+
+Memory and time depended on model width and partition layout, not on the
+number of rows. The 2 GB cap was deliberate, so these problems would show up
+before we pay for a cluster.
+
+| Problem | Cause | Fix and effect |
+|---|---|---|
+| Out-of-memory error on the **13k-row** CSV | 2 × 2^18 features × 77 classes ≈ 40M dense coefficients, copied per L-BFGS task | `--num-features 32768`: fits in 2 GB |
+| Out-of-memory error at 2M rows; 36 s per L-BFGS iteration | `groupBy("text")` left training data in 200 partitions, each returning a full 77 × 65,536 gradient | Repartition to 2 per core: 2.0–2.8 s per iteration |
+| Scoring at ~600 msgs/s (≈55 min for 1.9M rows) | Unseen hash buckets have zero weight, so Spark stored the coefficients as a `SparseMatrix`, and every message walked all of it | Rebuild with `coefficientMatrix().toDense()`: 20,000 msgs in 38.9 s → 1.7 s, same predictions |
+| Accuracy that cannot be trusted | Replayed messages are one sentence plus a prefix or suffix, so near-copies land on both sides of a split; `generate_log.py` also replays the official test split | Test on the official split with a train-only replay (below); fix the generator (§5) |
+
+: Problems found and how we fixed them {#tbl-wrestle}
+
+# Results
+
+| Input | Rows | Training texts | Train (s) | Score + write (s) | Total (s) | Official test accuracy |
+|---|--:|--:|--:|--:|--:|--:|
+| Banking77 CSV (train split) | 10,003 | 10,003 | 149 | – | 163 | 83.8% |
+| Our generator's log, 90 days | 905,828 | 33,559 | 283 | 44 | 357 | n/a* |
+| Train-only test log | 2,000,000 | 65,110 | 317 | 88 | 440 | 83.0% |
+| Train-only test log | 10,000,000 | 189,739 | 492 | 384 | 935 | 83.3% |
+
+: Same script, same 2 GB heap. *That log replays the test split, so official-test accuracy would leak. {#tbl-results}
+
+Five times more rows (2M → 10M) took 2.1× as long in total. Scoring grew
+4.4× and ran at 22,000–25,000 messages/s on two cores. Training grew only
+1.6×, because it sees distinct reviewed texts, not rows. On held-out text,
+more replayed rows did not help (83.0–83.3% vs 83.8%): the pipeline is not
+the limit, the synthetic text is. Accuracy within each log is 98.8–99.98%,
+which only measures near-duplicates.
+
+One early fraud signal from our generator's log: the identity-check attack
+rows got lower intent confidence than ordinary rows (0.77 vs 0.98), but the
+token-flooding rows got 1.00. Confidence can be one feature of the risk
+score, but it will not catch flooding on its own.
+
+# Next steps
+
+- Run the job on the 44.5M-row S3 log on the EC2 cluster (1 master + 4
+  workers) at 1/10/100% of the data on 1, 2 and 4 workers, and record
+  runtime, shuffle and partitions from the Spark UI. *Lanbin Fan, Ken Qin*
+- Make `generate_log.py` replay only the training split and write a `base_id`
+  per row, so the official 3,080-message test set stays unseen. *Ken Qin*
+- Add Spark NLP sentence embeddings as a second model, and a fraud-risk score
+  combining confidence, length and intent sequences. *Zizheng Wang*
+- Feed `predictions/` and the drift table into the dashboard and the Quarto
+  final report. *Lanbin Fan, Yixuan He*

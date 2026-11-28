@@ -1,0 +1,41 @@
+{
+  "mode": "log",
+  "master": "local[2]",
+  "default_parallelism": 2,
+  "driver_memory": "2g",
+  "input_partitions": 9,
+  "rows_total": 905828,
+  "rows_labeled": 45454,
+  "distinct_labeled_texts": 41972,
+  "train_partitions_before": 2,
+  "train_partitions": 4,
+  "n_train": 33559,
+  "t_load_s": 16.3,
+  "t_fit_s": 282.7,
+  "coef_matrix_as_trained": "SparseMatrix",
+  "accuracy": 0.9878759063354332,
+  "macro_f1": 0.9877072252853283,
+  "n_eval": 8413,
+  "t_eval_s": 5.0,
+  "t_score_write_s": 44.2,
+  "scored_by_injected_type": {
+    "none": {
+      "n": 858463,
+      "mean_conf": 0.977038792912261
+    },
+    "token_flooding": {
+      "n": 261,
+      "mean_conf": 0.9999999880320197
+    },
+    "identity_fail_transfer": {
+      "n": 256,
+      "mean_conf": 0.7670328178135715
+    },
+    "drift_vocab": {
+      "n": 1394,
+      "mean_conf": 0.9913512442793218
+    }
+  },
+  "predictions_partitions_written": 270,
+  "t_total_s": 357.4
+}
